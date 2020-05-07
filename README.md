@@ -1,4 +1,6 @@
 # buy_pig_plan | 买猪计划
+> #### 前言
+> 我把项目的思路放在最后了,感兴趣的话直接拉到下面[看思路](https://github.com/aqiongbei/buy_pig_plan#思路分享).
 
 #### 项目介绍
 
@@ -24,7 +26,6 @@
 - **可放大**。不管是电话攻击还是留言攻击，都存在对方做电话回访的可能性，所以，你发动的可不仅仅是一次攻击哦
 
 #### 使用教程
-
 
 - 下载
 ```sh
@@ -88,3 +89,74 @@ npm run debug
 - 随机网站攻击
 - 100000+网站支持
 - 攻击参数可配置
+
+#### 思路分享
+整个项目的思路是这样的:
+##### step 0 网站收集
+从[百度离线宝(百度的一个营销系统,其中的一个功能是电话回拨系统,简单说就是可以通过网站打电话)](https://lxb.baidu.com/lxb/index.html)的一个不知道[为何存在的页面](http://lxbjs.baidu.com/cb/url/show?f=56&id=1)遍历id获取使用其服务的客户网站.然后打开他们客服的网站,根据下面的特征我们可以大致分成三种:
+- 有电话回拨功能的(下图右边中部),这中网站我称之为`call`类型
+![有电话回拨的](./images/call.png)
+- 有留言功能的(下图左下角),这种网站我称之为`comment`类型
+![有留言功能的](./images/comment.png)
+- 没有以上两种任意一种功能的
+
+前两种是我需要的网站类型,我会把他们保存在`json`文件中,供后面的流程使用.
+这个步骤对应的脚本是`/utils/get_lxb_sources.js`,使用方法是
+更改`/utils/get_lxb_sources.js`里面的
+```js
+// start_id end_id
+await start(114000, 114001); // 更改这里的传参,第一个参数为开始id,第二个为结束id,这里建议start_id和end_id相差10000最好
+```
+然后在项目根目录跑一下这个脚本
+```sh
+node /utils/get_lxb_sources.js
+```
+脚本跑完之后会在`sources`目录的不同类型下产生形如:`baidu_shangqiao_50000.json`的文件.
+
+接下来我们开始使用这些收集到的网站.
+
+##### step 1 开始攻击
+step 0我们已经收集到了一些可用的网站,现在我们要使用这些网站了.
+在主程序运行的时候,针对不同类型的网站我会采用不同的处理逻辑,但是大致的流程都一样,就拿`call`类型的网站:
+- 在chromium中打开这个页面
+- 等页面加载加载完成之后在页面内`.lxb-cb-input`对应的输入框中输入目标的手机号,然后点击`.lxb-cb-input-btn`元素触发电话回拨
+- 1s中之后收集上个操作是否成功的反馈,方便后面统计使用
+
+对于`comment`的网站,操作类似:
+- 在chromium中打开这个页面
+- 等页面加载加载完成之后在页面内找到一些必填的信息,把目标的信息填写进去,然后提交
+- 1s中之后收集上个操作是否成功的反馈,方便后面统计使用
+
+这样就实现了一次攻击.明白了思路之后再来看文件结构就很简单了
+```sh
+.
+├── app.js
+├── config
+│   ├── debug.json
+│   └── default.json
+├── flow
+│   ├── call
+│   │   ├── baidu_lxb.js
+│   │   └── baidu_shangqiao.js
+│   ├── comment
+│   │   └── baidu_shangqiao.js
+│   └── flow.js
+├── LICENSE
+├── package.json
+├── package-lock.json
+├── README.md
+├── sources
+│   ├── call
+│   │   └── baidu_lxb.json
+│   ├── comment
+│   │   └── baidu_shangqiao.json
+│   └── sms
+└── utils
+    ├── get_lxb_sources.js
+    └── util.js
+```
+- `app.js`是入口文件
+- `config`下面放的是攻击的配置信息,三个文件,两个环境,一个`debug`环境一个`production`环境
+- `flow`下面放的是具体攻击的流程信息,目前支持两种攻击类型`call`&`comment`,在设计上其实还预留了`sms`这样的攻击方式,只是没有发现合适的网站去实现
+- `sources`下面按照不同的攻击类型(或者叫网站类型,这两个概念在现在的设计中是统一的)放了一些收集到的可用网站
+- `utils`一些工具方法
