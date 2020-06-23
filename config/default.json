@@ -1,19 +1,19 @@
 {
-    "target": {
-        "phone": "",
-        "name": "",
-        "email": "",
+    "target": {...
+        "phone": "13926816922",
+        "name": "fa",
+        "email": "491094930@qq.com",
         "address": "",
-        "comment": ""
+        "comment": ".."
     },
-    "attack": {
+    "attack": {...
         "times": 6,
         "time": "0 2 * * * *",
         "web_type": "baidu_lxb",
         "task_type": "call", // "comment"
         "interval": 300000
     },
-    "chromium": {
+    "chromium": {...
         "slowMo": 100,
         "timeout": 30000,
         "devtools": false,
